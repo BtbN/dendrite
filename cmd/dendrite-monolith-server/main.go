@@ -47,6 +47,9 @@ func main() {
 	cfg := setup.ParseFlags(true)
 	httpAddr := cfg.Global.Monolith.HTTPBindAddr
 	httpsAddr := cfg.Global.Monolith.HTTPSBindAddr
+	certPath := string(cfg.Global.Monolith.TlsCertificatePath)
+	keyPath := string(cfg.Global.Monolith.TlsPrivateKeyPath)
+
 	if *httpBindAddr != "" {
 		httpAddr = config.HTTPAddress("http://" + *httpBindAddr)
 	}
@@ -54,6 +57,14 @@ func main() {
 		httpsAddr = config.HTTPAddress("https://" + *httpsBindAddr)
 	}
 	httpAPIAddr := httpAddr
+
+	if *certFile != "" {
+		certPath = *certFile
+	}
+	if *keyFile != "" {
+		keyPath = *keyFile
+	}
+
 	options := []basepkg.BaseDendriteOptions{}
 	if *enableHTTPAPIs {
 		logrus.Warnf("DANGER! The -api option is enabled, exposing internal APIs on %q!", *apiBindAddr)
@@ -169,12 +180,12 @@ func main() {
 		)
 	}()
 	// Handle HTTPS if certificate and key are provided
-	if *certFile != "" && *keyFile != "" {
+	if certPath != "" && keyPath != "" {
 		go func() {
 			base.SetupAndServeHTTP(
-				basepkg.NoListener, // internal API
-				httpsAddr,          // external API
-				certFile, keyFile,  // TLS settings
+				basepkg.NoListener,  // internal API
+				httpsAddr,           // external API
+				&certPath, &keyPath, // TLS settings
 			)
 		}()
 	}
